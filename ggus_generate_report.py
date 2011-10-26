@@ -24,7 +24,7 @@ password = sys.argv[2]
 login_data = {'login': login, 'pass': password}
 
 url_login = 'https://ggus.eu/admin/login.php'
-url_xml = 'https://gus.fzk.de/ws/ticket_search.php?writeFormat=XML&&show_columns_check=Array&ticket=&supportunit=NGI_IBERGRID&vo=all&user=&keyword=&involvedsupporter=&assignto=&affectedsite=&specattrib=0&status=open&priority=all&typeofproblem=all&mouarea=&radiotf=1&timeframe=lastyear&tf_date_day_s=&tf_date_month_s=&tf_date_year_s=&tf_date_day_e=&tf_date_month_e=&tf_date_year_e=&lm_date_day=24&lm_date_month=8&lm_date_year=2010&orderticketsby=GHD_AFFECTED_SITE&orderhow=ascending&show_columns=REQUEST_ID;AFFECTED_SITE;STATUS;DATE_OF_CREATION;LAST_UPDATE;SHORT_DESCRIPTION'
+url_xml = 'https://ggus.eu/ws/ticket_search.php?writeFormat=XML&&show_columns_check=Array&ticket=&supportunit=NGI_IBERGRID&vo=all&user=&keyword=&involvedsupporter=&assignto=&affectedsite=&specattrib=0&status=open&priority=all&typeofproblem=all&mouarea=&radiotf=1&timeframe=any&from_date=&to_date=&untouched_date=&orderticketsby=GHD_INT_REQUEST_ID&orderhow=descending&show_columns=REQUEST_ID;TICKET_TYPE;AFFECTED_VO;AFFECTED_SITE;PRIORITY;RESPONSIBLE_UNIT;STATUS;DATE_OF_CREATION;LAST_UPDATE;TYPE_OF_PROBLEM;SUBJECT'
 
 message_header = """
 ### Open GGUS tickets ###
@@ -43,7 +43,7 @@ SITE : * %(affected_site)s *
         GGUS ID     : %(request_id)s
         Open since  : %(date_of_creation)s UTC
         Status      : %(status)s
-        Description : %(short_description)s
+        Description : %(subject)s
         Link        : https://gus.fzk.de/ws/ticket_info.php?ticket=%(request_id)s
 ==============================================================================="""
 
@@ -69,10 +69,10 @@ nr_of_tickets = len(tickets)
 print message_header % locals()
 
 for ticket in tickets:
-    affected_site = ticket.getAttribute("affected_site")
+    affected_site = ticket.getAttribute("affected_site") or "N/A"
     date_of_creation = time.strftime("%B %d %Y %H:%M",time.gmtime(float(ticket.getAttribute("date_of_creation"))))
     status = ticket.getAttribute("status")
-    short_description = ticket.getElementsByTagName("short_description")[0].firstChild.data
+    subject = ticket.getElementsByTagName("subject")[0].firstChild.data
     request_id = ticket.getAttribute("request_id")
 
     print ticket_body % locals()
