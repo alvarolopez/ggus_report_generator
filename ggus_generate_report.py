@@ -13,13 +13,37 @@ import time
 from xml.dom import minidom
 
 import sys
+import getopt
 
-if len(sys.argv) != 3:
+def usage():
+    print """usage: %s <username> <password> [-r] [-h]
+    Options:
+        -r  Reverse sort (oldest first)
+        -h  Show this help
+    """ % sys.argv[0]
+
+
+try:
+    opts, args = getopt.getopt(sys.argv[1:], 'rh')
+except getopt.GetoptError, err:
+    print >> sys.stderr, "ERROR: " + str(err)
+    usage()
+    sys.exit(1)
+
+reverse = False
+for o, a in opts:
+    if o == "-h":
+        usage()
+        sys.exit(0)
+    elif o == "-r":
+        reverse = True
+
+if len(args) != 2:
     print "ERROR. Usage %s <username> <password>" % sys.argv[0]
     sys.exit(1)
 
-login = sys.argv[1]
-password = sys.argv[2]
+login = args.pop(0)
+password = args.pop(0)
 
 login_data = {'login': login, 'pass': password}
 
@@ -67,6 +91,9 @@ tickets = xml.getElementsByTagName('ticket')
 nr_of_tickets = len(tickets)
 
 print message_header % locals()
+
+if reverse:
+    tickets.reverse()
 
 for ticket in tickets:
     affected_site = ticket.getAttribute("affected_site") or "N/A"
