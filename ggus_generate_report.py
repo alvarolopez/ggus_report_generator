@@ -78,7 +78,13 @@ urllib2.install_opener(opener)
 # Make login
 login_data = urllib.urlencode(login_data)
 f = opener.open(url_login, login_data)
+login_result = f.read()
 f.close()
+
+# Quick'n dirty
+if "register_fail.php?nextpg" in login_result :
+    print >> sys.stderr, "ERROR: Login unsuccessful."
+    sys.exit(2)
 
 # Get the XML report
 f = opener.open(url_xml)
