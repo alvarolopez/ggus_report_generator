@@ -1,30 +1,36 @@
 #!/usr/bin/env python
 
-# Get the latest version from http://devel.ifca.es/~alvaro/files/ggus_generate_report.py
+# Get the latest version from http://devel.ifca.es/~alvaro/hg/ggus_report
 # AUTHOR: Alvaro Lopez <aloga@ifca.unican.es>
 
-__version__ = 20110530
+# Change it if you want to use it for your NGI without specifing
+# it in the command-line
+support_unit = "NGI_IBERGRID"
+
 
 import urllib
 import urllib2
-
 import time
-
-from xml.dom import minidom
-
 import sys
 import getopt
 
+from xml.dom import minidom
+
+__version__ = 20110530
+
 def usage():
-    print """usage: %s <username> <password> [-r] [-h]
+    global support_unit
+    print """usage: %s <username> <password> [-r] [-h] [-s NAME]
     Options:
-        -r  Reverse sort (oldest first)
-        -h  Show this help
-    """ % sys.argv[0]
+        -r          Reverse sort (oldest first)
+        -s NAME     Support Unit (defauts to %s)
+
+        -h          Show this help
+    """ % (sys.argv[0], support_unit)
 
 
 try:
-    opts, args = getopt.getopt(sys.argv[1:], 'rh')
+    opts, args = getopt.getopt(sys.argv[1:], 'rhs:')
 except getopt.GetoptError, err:
     print >> sys.stderr, "ERROR: " + str(err)
     usage()
@@ -35,6 +41,8 @@ for o, a in opts:
     if o == "-h":
         usage()
         sys.exit(0)
+    elif o == "-s":
+        support_unit = a
     elif o == "-r":
         reverse = True
 
@@ -48,13 +56,13 @@ password = args.pop(0)
 login_data = {'login': login, 'pass': password}
 
 url_login = 'https://ggus.eu/admin/login.php'
-url_xml = 'https://ggus.eu/ws/ticket_search.php?writeFormat=XML&&show_columns_check=Array&ticket=&supportunit=NGI_IBERGRID&vo=all&user=&keyword=&involvedsupporter=&assignto=&affectedsite=&specattrib=0&status=open&priority=all&typeofproblem=all&mouarea=&radiotf=1&timeframe=any&from_date=&to_date=&untouched_date=&orderticketsby=GHD_INT_REQUEST_ID&orderhow=descending&show_columns=REQUEST_ID;TICKET_TYPE;AFFECTED_VO;AFFECTED_SITE;PRIORITY;RESPONSIBLE_UNIT;STATUS;DATE_OF_CREATION;LAST_UPDATE;TYPE_OF_PROBLEM;SUBJECT'
+url_xml = 'https://ggus.eu/ws/ticket_search.php?writeFormat=XML&&show_columns_check=Array&ticket=&supportunit=%(support_unit)s&vo=all&user=&keyword=&involvedsupporter=&assignto=&affectedsite=&specattrib=0&status=open&priority=all&typeofproblem=all&mouarea=&radiotf=1&timeframe=any&from_date=&to_date=&untouched_date=&orderticketsby=GHD_INT_REQUEST_ID&orderhow=descending&show_columns=REQUEST_ID;TICKET_TYPE;AFFECTED_VO;AFFECTED_SITE;PRIORITY;RESPONSIBLE_UNIT;STATUS;DATE_OF_CREATION;LAST_UPDATE;TYPE_OF_PROBLEM;SUBJECT' % { "support_unit" : support_unit }
 
 message_header = """
 ### Open GGUS tickets ###
 
-There are %(nr_of_tickets)s open tickets under IBERGRID scope. Please find below a
-short summary of those tickets. Please take the appropriate actions:
+There are %(nr_of_tickets)s open tickets under IBERGRID scope. Please find
+below a short summary of those tickets. Please take the appropriate actions:
     - Change the ticket status from "ASSIGNED" to "IN PROGRESS".
     - Provide feedback on the issue as regularly as possible.
     - In case of problems, ask for help in ibergrid-ops@listas.cesga.es
@@ -103,7 +111,8 @@ if reverse:
 
 for ticket in tickets:
     affected_site = ticket.getAttribute("affected_site") or "N/A"
-    date_of_creation = time.strftime("%B %d %Y %H:%M",time.gmtime(float(ticket.getAttribute("date_of_creation"))))
+    date_of_creation = time.strftime("%B %d %Y %H:%M",
+            time.gmtime(float(ticket.getAttribute("date_of_creation"))))
     status = ticket.getAttribute("status")
     subject = ticket.getElementsByTagName("subject")[0].firstChild.data
     request_id = ticket.getAttribute("request_id")
