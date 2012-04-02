@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-# Get the latest version from http://devel.ifca.es/~alvaro/hg/ggus_report
+# Get the latest version from the following URL:
+#     https://github.com/alvarolopez/ggus_report_generator
 # AUTHOR: Alvaro Lopez <aloga@ifca.unican.es>
 
 # Change it if you want to use it for your NGI without specifing
 # it in the command-line
 support_unit = "NGI_IBERGRID"
-
 
 import urllib
 import urllib2
@@ -17,6 +17,7 @@ import getopt
 from xml.dom import minidom
 
 __version__ = 20110530
+
 
 def usage():
     global support_unit
@@ -56,7 +57,16 @@ password = args.pop(0)
 login_data = {'login': login, 'pass': password}
 
 url_login = 'https://ggus.eu/admin/login.php'
-url_xml = 'https://ggus.eu/ws/ticket_search.php?writeFormat=XML&&show_columns_check=Array&ticket=&supportunit=%(support_unit)s&vo=all&user=&keyword=&involvedsupporter=&assignto=&affectedsite=&specattrib=0&status=open&priority=all&typeofproblem=all&mouarea=&radiotf=1&timeframe=any&from_date=&to_date=&untouched_date=&orderticketsby=GHD_INT_REQUEST_ID&orderhow=descending&show_columns=REQUEST_ID;TICKET_TYPE;AFFECTED_VO;AFFECTED_SITE;PRIORITY;RESPONSIBLE_UNIT;STATUS;DATE_OF_CREATION;LAST_UPDATE;TYPE_OF_PROBLEM;SUBJECT' % { "support_unit" : support_unit }
+url_ticket_search = ('https://ggus.eu/ws/ticket_search.php')
+xml_query = ('?writeFormat=XML'
+           '&&show_columns_check=Array&ticket=&supportunit=%(support_unit)s'
+           '&vo=all&user=&keyword=&involvedsupporter=&assignto=&affectedsite='
+           '&specattrib=0&status=open&priority=all&typeofproblem=all&mouarea='
+           '&radiotf=1&timeframe=any&from_date=&to_date=&untouched_date='
+           '&orderticketsby=GHD_INT_REQUEST_ID&orderhow=descending'
+           '&show_columns=REQUEST_ID;TICKET_TYPE;AFFECTED_VO;AFFECTED_SITE;'
+           'PRIORITY;RESPONSIBLE_UNIT;STATUS;DATE_OF_CREATION;LAST_UPDATE;'
+           'TYPE_OF_PROBLEM;SUBJECT' % {"support_unit": support_unit})
 
 message_header = """
 ### Open GGUS tickets ###
@@ -67,20 +77,21 @@ below a short summary of those tickets. Please take the appropriate actions:
     - Provide feedback on the issue as regularly as possible.
     - In case of problems, ask for help in ibergrid-ops@listas.cesga.es
     - For long pending issues, put your site/node in downtime.
-    - Don't forget to close the ticket when you have solved the problem."""
+    - Don't forget to close the ticket when you have solved the problem.
+"""
 
-ticket_body = """
-===============================================================================
-SITE : * %(affected_site)s *
-        GGUS ID     : %(request_id)s
-        Open since  : %(date_of_creation)s UTC
-        Status      : %(status)s
-        Description : %(subject)s
-        Link        : https://gus.fzk.de/ws/ticket_info.php?ticket=%(request_id)s
-==============================================================================="""
+ticket_body = "=" * 80 + """
+SITE: * %(affected_site)s *
+      GGUS ID     : %(request_id)s
+      Open since  : %(date_of_creation)s UTC
+      Status      : %(status)s
+      Description : %(subject)s
+      Link        : https://gus.fzk.de/ws/ticket_info.php?ticket=%(request_id)s
+""" + "=" * 80
 
 
-opener = urllib2.build_opener(urllib2.HTTPCookieProcessor())
+opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(),
+                              urllib2.HTTPSHandler())
 urllib2.install_opener(opener)
 
 # Make login
@@ -90,11 +101,14 @@ login_result = f.read()
 f.close()
 
 # Quick'n dirty
-if "register_fail.php?nextpg" in login_result :
+if "register_fail.php?nextpg" in login_result:
     print >> sys.stderr, "ERROR: Login unsuccessful."
     sys.exit(2)
 
-# Get the XML report
+# Get the XML report. We need to fetch first the ticket search page and then
+# get # the XML report because of some silly redirection and authentication
+f = opener.open(url_ticket_search)
+url_xml = url_ticket_search + xml_query
 f = opener.open(url_xml)
 report = f.read()
 f.close()
@@ -109,6 +123,7 @@ print message_header % locals()
 if reverse:
     tickets.reverse()
 
+res = []
 for ticket in tickets:
     affected_site = ticket.getAttribute("affected_site") or "N/A"
     date_of_creation = time.strftime("%B %d %Y %H:%M",
@@ -118,4 +133,3 @@ for ticket in tickets:
     request_id = ticket.getAttribute("request_id")
 
     print ticket_body % locals()
-
