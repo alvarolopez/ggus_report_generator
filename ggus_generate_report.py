@@ -8,15 +8,16 @@
 # it in the command-line
 support_unit = "NGI_IBERGRID"
 
+import getopt
 import urllib
 import urllib2
 import time
+import re
 import sys
-import getopt
-
 from xml.dom import minidom
+import xml.parsers.expat
 
-__version__ = 20110530
+__version__ = 20121025
 
 
 def usage():
@@ -113,7 +114,17 @@ f = opener.open(url_xml)
 report = f.read()
 f.close()
 
-xml = minidom.parseString(report)
+try:
+    xml = minidom.parseString(report)
+except xml.parsers.expat.ExpatError:
+    # TODO(aloga): This is ugly. We need to change this to a more appropiate
+    # parsing
+    # This is an ugly hack. GGUS reports are inserting HTML entities
+    # in XML documents.
+    regexp = r'description=".*?"'
+    report = re.sub(regexp, "", report, flags=re.M | re.S)
+    xml = minidom.parseString(report)
+
 tickets = xml.getElementsByTagName('ticket')
 
 nr_of_tickets = len(tickets)
