@@ -10,7 +10,7 @@ import xml.parsers.expat
 
 from xml.dom import minidom
 
-__version__ = 20140324
+__version__ = 20140813
 
 # Change it if you want to use it for your NGI without specifing
 # it in the command-line
@@ -40,15 +40,18 @@ SITE: * %(affected_site)s *
       Open since  : %(date_of_creation)s UTC
       Status      : %(status)s
       Description : %(subject)s
-      Link        : https://gus.fzk.de/ws/ticket_info.php?ticket=%(request_id)s
+      Link        : https://ggus.eu/ws/ticket_info.php?ticket=%(request_id)s
 """ + "=" * 80
 
     def __init__(self, ticket):
         self.ticket = ticket
 
     def _get_by_xml_tag(self, tag):
-        value = self.ticket.getElementsByTagName(tag)[0].firstChild.nodeValue
-        return value or "N/A"
+        aux = self.ticket.getElementsByTagName(tag)[0].firstChild
+        value = None
+        if aux:
+            value = aux.nodeValue
+        return value
 
     @property
     def affected_site(self):
@@ -167,7 +170,15 @@ def main():
 
     print message_header % {"support_unit": args.support_unit,
                             "ticket count": len(tickets)}
+
+    su_tickets = []
     for ticket in tickets:
+        if not ticket.affected_site:
+            su_tickets.append(ticket)
+            continue
+        print ticket.render()
+
+    for ticket in su_tickets:
         print ticket.render()
 
 
