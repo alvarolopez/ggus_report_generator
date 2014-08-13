@@ -25,7 +25,7 @@ find below a short summary of them. Please take the appropriate actions:
     - Provide feedback on the issue as regularly as possible.
     - In case of problems, ask for help in <ibergrid-ops@listas.cesga.es>
     - For long pending issues, put your site/node in downtime.
-    - Don't forget to close the ticket when you have solved the problem.
+    - Do not forget to close the ticket when you have solved the problem.
 """
 
 
@@ -34,17 +34,19 @@ class GGUSReportException(Exception):
 
 
 class GGUSTicket(object):
-    body_template = "=" * 80 + """
-SITE: * %(affected_site)s *
+    support_unit_tag = "SUPPORT UNIT"
+    site_tag = "SITE"
+
+    body_template = """%(title)s: %(affected_site)s
       GGUS ID     : %(request_id)s
       Open since  : %(date_of_creation)s UTC
       Status      : %(status)s
       Description : %(subject)s
-      Link        : https://ggus.eu/ws/ticket_info.php?ticket=%(request_id)s
-""" + "=" * 80
+      Link        : https://ggus.eu/ws/ticket_info.php?ticket=%(request_id)s"""
 
-    def __init__(self, ticket):
+    def __init__(self, ticket, support_unit):
         self.ticket = ticket
+        self.support_unit = support_unit
 
     def _get_by_xml_tag(self, tag):
         aux = self.ticket.getElementsByTagName(tag)[0].firstChild
@@ -74,11 +76,21 @@ SITE: * %(affected_site)s *
         return self._get_by_xml_tag("request_id")
 
     def render(self):
-        return self.body_template % {"request_id": self.request_id,
-                                     "affected_site": self.affected_site,
-                                     "date_of_creation": self.date_of_creation,
-                                     "status": self.status,
-                                     "subject": self.subject}
+        d = {
+            "request_id": self.request_id,
+            "date_of_creation": self.date_of_creation,
+            "status": self.status,
+            "subject": self.subject
+        }
+
+        if self.affected_site:
+            d["title"] = self.site_tag
+            d["affected_site"] =  self.affected_site
+        else:
+            d["title"] = self.support_unit_tag
+            d["affected_site"] =  self.support_unit
+
+        return self.body_template % d
 
 
 class GGUSConnection(object):
@@ -95,6 +107,7 @@ class GGUSConnection(object):
         self.session = None
         self.user = user
         self.password = password
+        self.support_unit = support_unit
         self.url = self.url % {"support_unit": support_unit}
 
     def _get_ggus_session(self):
@@ -124,7 +137,7 @@ class GGUSConnection(object):
 
         tickets = aux.getElementsByTagName('ticket')
 
-        return [GGUSTicket(ticket) for ticket in tickets]
+        return [GGUSTicket(ticket, self.support_unit) for ticket in tickets]
 
 
 def parse_args():
@@ -176,11 +189,14 @@ def main():
         if not ticket.affected_site:
             su_tickets.append(ticket)
             continue
+        print "-" * 80
         print ticket.render()
 
     for ticket in su_tickets:
+        print "-" * 80
         print ticket.render()
 
+    print "-" * 80
 
 if __name__ == "__main__":
     main()
