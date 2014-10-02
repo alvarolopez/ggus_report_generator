@@ -4,13 +4,15 @@
 #     https://github.com/alvarolopez/ggus_report_generator
 # AUTHOR: Alvaro Lopez <aloga@ifca.unican.es>
 
+from __future__ import print_function
+
 import argparse
 import requests
 import xml.parsers.expat
 
 from xml.dom import minidom
 
-__version__ = 20140813
+__version__ = 20141002
 
 # Change it if you want to use it for your NGI without specifing
 # it in the command-line
@@ -181,22 +183,21 @@ def main():
     if args.reverse:
         tickets.reverse()
 
-    print message_header % {"support_unit": args.support_unit,
-                            "ticket count": len(tickets)}
+    print (message_header % {"support_unit": args.support_unit,
+                             "ticket count": len(tickets)})
 
+    separator = "-" * 80
     su_tickets = []
     for ticket in tickets:
         if not ticket.affected_site:
             su_tickets.append(ticket)
             continue
-        print "-" * 80
-        print ticket.render()
+        print(separator, ticket.render(), sep='\n')
 
     for ticket in su_tickets:
-        print "-" * 80
-        print ticket.render()
+        print(separator, ticket.render(), sep='\n')
 
-    print "-" * 80
+    print("-" * 80)
 
 if __name__ == "__main__":
     main()
