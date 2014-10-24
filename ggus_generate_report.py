@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 # Get the latest version from the following URL:
 #     https://github.com/alvarolopez/ggus_report_generator
@@ -51,11 +51,10 @@ class GGUSTicket(object):
         self.support_unit = support_unit
 
     def _get_by_xml_tag(self, tag):
-        aux = self.ticket.getElementsByTagName(tag)[0].firstChild
-        value = None
+        aux = self.ticket.getElementsByTagName(tag)
         if aux:
-            value = aux.nodeValue
-        return value
+            return aux[0].firstChild.nodeValue
+        return None
 
     @property
     def affected_site(self):
